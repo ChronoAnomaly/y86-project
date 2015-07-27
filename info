@@ -1,0 +1,25 @@
+void irmove(int val, char reg)
+int *rB=r2(reg);//passing reg into register 2
+*rb=val;
+printf("irmovl % %x %x\n", val,*rb,*ebp);
+pc+=6;
+
+unixwiz.net/techtips/x86-jumps.html
+
+
+SF -----> if result & 128 == 128 ----> set SF
+
+Zf -----> result == 0 ----> set ZF
+
+OF ----->
+	a b r
+	-----
+	- - - x
+	- - + -----> OF
+	- + - x
+	- + + x
+	+ - - x
+	+ - + x
+	+ + - -----> OF
+	+ + + x
+
