@@ -1,5 +1,10 @@
-CFLAGS = -std=c89 -pedantic -Wall
+CFLAGS = -std=c90 -pedantic -Wall -g
+CFILES = worley_project3.c
+TARGET = Worley-project3
 
 
 project:
-	gcc -o Worley-project3 $(CFLAGS) worley_project3.c
+	gcc -o $(TARGET) $(CFLAGS) $(CFILES)
+
+test:	
+	./$(TARGET) y86-instructions.txt > log
