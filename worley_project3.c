@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <ctype.h>
 
 /* max size of the memory space for the y86 emulator */
 #define MEMSIZE (int)pow(2, 32)
@@ -36,7 +37,11 @@ int main(int argc, char** argv)
 {
 
 	FILE* fp;
-	
+	char ch;
+	unsigned int program_size = 0;
+	int num, i;
+
+	/* Allocate the memory space for the y86 emulator */
 	memory = (unsigned char*)malloc(sizeof(unsigned char) * MEMSIZE);
 
 	if(memory != NULL) {
@@ -60,9 +65,19 @@ int main(int argc, char** argv)
 
 
 
-	while() {
-
+	while( (ch = fgetc(fp)) != EOF) {
+		
+		if(isxdigit(ch)) {
+			
+			num = ascii_to_hex(ch);
+			memory[program_size++] = num;
+		}
 	}
+
+	for(i = 0; i < 30; i++) {
+		printf("Memory[%x]: %x\n", i, memory[i]);
+	}
+
 	fclose(fp);
 	free(memory);
 
@@ -73,7 +88,7 @@ int main(int argc, char** argv)
 int ascii_to_hex(char c)
 {
 
-	int nugm = (int)c;
+	int num = (int)c;
 	
 	if(num < 58 && num > 47) {
 		return num - 48;
