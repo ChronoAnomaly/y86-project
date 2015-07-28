@@ -18,6 +18,7 @@
 */
 
 int ascii_to_hex(char c);
+int execute();
 
 /*######################################
  * Global variable space
@@ -29,9 +30,28 @@ unsigned int stack_limit;	/* smallest address that the stack can not go past */
 
 unsigned char* memory;
 
+/* Registers
+ *-------------------------------------
+ * reg[0] %eax
+ * reg[1] %ecx
+ * reg[2] %edx
+ * reg[3] %ebx
+ * reg[4] %esp - stack pointer
+ * reg[5] %ebp - stack base pointer
+ * reg[6] %esi
+ * reg[7] %edi
+*/
 int reg[8];
 
-typedef enum {AOK = 1, HLT, ADR, INS, STC} status;
+/* Condition codes
+ * flags are ZF, SF, OF
+ * ZF: zero
+ * SF: Sign flag
+ * OF: Overflow
+*/
+int flags[3];
+
+typedef enum {AOK = 1, HLT, ADR, INS} status;
 
 int main(int argc, char** argv)
 {
@@ -39,7 +59,7 @@ int main(int argc, char** argv)
 	FILE* fp;
 	char ch;
 	unsigned int program_size = 0;
-	int num, i;
+	int num;
 
 	/* Allocate the memory space for the y86 emulator */
 	memory = (unsigned char*)malloc(sizeof(unsigned char) * MEMSIZE);
@@ -74,16 +94,15 @@ int main(int argc, char** argv)
 		}
 	}
 
-	for(i = 0; i < 30; i++) {
-		printf("Memory[%x]: %x\n", i, memory[i]);
-	}
+	stack_limit = program_size;
+
+	execute();
 
 	fclose(fp);
 	free(memory);
 
 	return EXIT_SUCCESS;
 }
-
 
 int ascii_to_hex(char c)
 {
@@ -99,4 +118,17 @@ int ascii_to_hex(char c)
 	}
 	
 	return num;
+}
+
+int execute()
+{
+
+	unsigned int op_code, address;
+
+	/* set the registers to 0x0 to begin the emulator */
+	reg[0] = reg[1] = reg[2] = reg[3] = reg[6] = reg[7] = 0x0;
+	/* set the stack registers to the max location in memory */
+	reg[3] = reg[4] = 0xFFFFFFFF;
+	pc = 0x0;
+
 }
