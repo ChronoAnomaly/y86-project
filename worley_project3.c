@@ -19,6 +19,8 @@
 
 int ascii_to_hex(char c);
 int execute();
+int valid_address(unsigned int addr);
+
 
 /*######################################
  * Global variable space
@@ -53,13 +55,15 @@ int flags[3];
 
 typedef enum {AOK = 1, HLT, ADR, INS} status;
 
+status programStatus;
+
 int main(int argc, char** argv)
 {
 
 	FILE* fp;
 	char ch;
 	unsigned int program_size = 0;
-	int num;
+	int instruct, i;
 
 	/* Allocate the memory space for the y86 emulator */
 	memory = (unsigned char*)malloc(sizeof(unsigned char) * MEMSIZE);
@@ -83,17 +87,31 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-
+	instruct = i = 0;
 
 	while( (ch = fgetc(fp)) != EOF) {
 		
 		if(isxdigit(ch)) {
 			
-			num = ascii_to_hex(ch);
-			memory[program_size++] = num;
+			instruct = ascii_to_hex(ch) << 4;
+		}
+		
+		if( (ch = fgetc(fp)) != EOF) {
+			
+			if(isxdigit(ch)) {
+			
+			instruct += ascii_to_hex(ch);
+			memory[program_size++] = instruct;
+		}
 		}
 	}
 
+	printf("test 0x%02x\n", memory[0]);
+	printf("test 0x%02x\n", memory[1]);
+	printf("test 0x%02x\n", memory[2]);
+	printf("test 0x%02x\n", memory[3]);
+	printf("test 0x%02x\n", memory[4]);
+	printf("test 0x%02x\n", memory[5]);
 	stack_limit = program_size;
 
 	execute();
@@ -120,6 +138,17 @@ int ascii_to_hex(char c)
 	return num;
 }
 
+int valid_address(unsigned int addr)
+{
+
+	if( (addr < 0x0) || (addr > MEMSIZE)) {
+		programStatus = ADR;
+		return 0;
+	}
+	
+	return 1;
+}
+
 int execute()
 {
 
@@ -131,4 +160,7 @@ int execute()
 	reg[3] = reg[4] = 0xFFFFFFFF;
 	pc = 0x0;
 
+	while(programStatus == AOK) {
+
+	}
 }
