@@ -8,9 +8,10 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
+#include <string.h>
 
 /* max size of the memory space for the y86 emulator */
-#define MEMSIZE (int)pow(2, 32)
+#define MEM_SIZE (int)pow(2, 32)
 
 /*######################################
  * Function define space
@@ -18,9 +19,19 @@
 */
 
 int ascii_to_hex(char c);
-int execute();
+void execute();
 int valid_address(unsigned int addr);
-
+void print_output();
+void rrmovl(int regA, int regB);
+void irmovl(int val, int regA);
+void mrmovl(int regA, int regB);
+void opl(int function, int regA, int regB);
+void jump(int function, unsigned int dest);
+void cmov(int function, int regA, int regB);
+void call(unsigned int dest);
+void ret();
+void push(int regA);
+void pop(int regA);
 
 /*######################################
  * Global variable space
@@ -28,6 +39,7 @@ int valid_address(unsigned int addr);
 */
 
 unsigned int pc;	/* program counter */
+int steps;		/* number of steps the that emulator has taken */
 unsigned int stack_limit;	/* smallest address that the stack can not go past */
 
 unsigned char* memory;
@@ -66,7 +78,7 @@ int main(int argc, char** argv)
 	int instruct, i;
 
 	/* Allocate the memory space for the y86 emulator */
-	memory = (unsigned char*)malloc(sizeof(unsigned char) * MEMSIZE);
+	memory = (unsigned char*)malloc(sizeof(unsigned char) * MEM_SIZE);
 
 	if(memory != NULL) {
 		printf("Valid memory pointer.\n");
@@ -116,6 +128,8 @@ int main(int argc, char** argv)
 
 	execute();
 
+	print_output();
+
 	fclose(fp);
 	free(memory);
 
@@ -141,7 +155,7 @@ int ascii_to_hex(char c)
 int valid_address(unsigned int addr)
 {
 
-	if( (addr < 0x0) || (addr > MEMSIZE)) {
+	if( (addr < 0x0) || (addr > MEM_SIZE)) {
 		programStatus = ADR;
 		return 0;
 	}
@@ -149,7 +163,8 @@ int valid_address(unsigned int addr)
 	return 1;
 }
 
-int execute()
+
+void execute()
 {
 
 	unsigned int op_code, address;
@@ -159,8 +174,126 @@ int execute()
 	/* set the stack registers to the max location in memory */
 	reg[3] = reg[4] = 0xFFFFFFFF;
 	pc = 0x0;
+	steps = 0;
+	programStatus = AOK;
 
 	while(programStatus == AOK) {
 
+		steps++;
+		op_code = memory[pc];
+		/* TODO: remove after testing */
+		printf("Testing op code 0x%02x\n", op_code);
+
+		/* determine OP Code */
+		if( (op_code & 0xff) == 0x10) {
+			/* halt instrution */
+			programStatus == HLT;
+		} else if( (op_code & 0xff) == 0x00) {
+			/* nop instruction, do nothing */
+		} else if( (op_code & 0xff) == 0x30) {
+
+		} else if( (op_code & 0xff) == 0x40) {
+
+		} else if( (op_code & 0xff) == 0x50) {
+
+		} else if( (op_code & 0xff) == 0x60) {
+
+		} else if( (op_code & 0xff) == 0x70) {
+		} else if( (op_code & 0xff) == 0x20) {
+		} else if( (op_code & 0xff) == 0x80) {
+		} else if( (op_code & 0xff) == 0x90) {
+		} else if( (op_code & 0xff) == 0xa0) {
+		} else if( (op_code & 0xff) == 0xb0) {
+		} else {
+			/* invalid instruction encountered */
+			programStatus == INS;
+		}
+
+
+
+
 	}
+}
+
+void rrmovl(int regA, int regB)
+{
+}
+
+void irmovl(int val, int regA)
+{
+
+	reg[regA] = val;
+	printf("irmovl %d into reg[%x]\n", val, regA);
+	pc += 6;
+	printf("Reg = %x\n", reg[regA]);
+}
+
+void mrmovl(int regA, int regB)
+{
+}
+
+void opl(int function, int regA, int regB)
+{
+}
+
+void jump(int function, unsigned int dest)
+{
+}
+
+void cmov(int function, int regA, int regB)
+{
+}
+
+void call(unsigned int dest)
+{
+}
+
+void ret()
+{
+}
+
+void push(int regA)
+{
+
+	reg[4] -= 4;
+	memory[reg[4]] = reg[regA];
+}
+
+void pop(int regA)
+{
+	
+	reg[regA] = memory[reg[4]];
+	reg[4] += 4;
+}
+void print_output()
+{
+
+	int i, flag;
+	char str[4];
+	
+	if(programStatus == AOK) {
+		strcpy(str, "AOK");
+	} else if(programStatus == HLT) {
+		strcpy(str, "HLT");
+	} else if(programStatus == ADR) {
+		strcpy(str, "ADR");
+	} else if(programStatus == INS) {
+		strcpy(str, "INS");
+	}
+
+	printf("Stopped in %d steps at PC - 0x%x.", steps, pc);
+	printf("  Status '%s', CC Z=%d S=%d", str, flags[0], flags[1]);
+	printf(" O=%d\n", flags[2]);
+	printf("Changes to the registers: \n");
+	
+	flag = 0;
+	/* print out changes made to the registers, if any */
+	for(i = 0; i < 8; i++) {
+
+	}
+	
+	if(flag == 0) {
+		printf("None\n");
+	}
+	
 }
