@@ -390,6 +390,13 @@ void ret()
 void pushl(int regA)
 {
 	steps++;
+
+	if( reg[4] - 4 <= stack_limit) {
+		Printf("Errror: Stack Overflow dectected.\n");
+		programStatus = HLT;
+		return;
+	}
+
 	reg[4] -= 4;
 	memory[reg[4]] = reg[regA];
 }
