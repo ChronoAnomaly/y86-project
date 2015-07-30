@@ -4,6 +4,11 @@
  *
 */
 
+
+/* NOTE: For some reason the global program counter (pc) is not updating
+ * correctly.  I have it adding the correct amount for the instructions,
+ * but it is off when trying to pull the next op code somehow.
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -165,7 +170,7 @@ void execute()
 {
 
 	unsigned int op_code, address;
-	int src, dest, function;
+	int src, dest, function, value;
 
 	/* set the registers to 0x0 to begin the emulator */
 	reg[0] = reg[1] = reg[2] = reg[3] = reg[6] = reg[7] = 0x0;
@@ -179,27 +184,22 @@ void execute()
 
 		steps++;
 		op_code = memory[pc];
-		/* TODO: remove after testing */
-		printf("Testing op code 0x%02x\n", op_code);
-
 		/* determine OP Code */
 		if( (op_code & 0xff) == 0x00) {
 			
-			/* halt instrution */
+			/* halt instruction */
 			programStatus = HLT;
 
 		} else if( (op_code & 0xff) == 0x10) {
 			/* nop instruction, do nothing */
 		} else if( (op_code & 0xff) == 0x30) {
-			
 			/* irmovl instruction */
-			int value = memory[pc + 2] |
+			value = memory[pc + 2] |
 				memory[pc + 3] << 8 |
 				memory[pc + 4] << 16 |
 				memory[pc + 5] << 24;
 			
 			dest = memory[pc + 1] & 0x0f;
-
 			if( (dest == 4) || (dest == 5)) {
 				programStatus = INS;
 				break;
@@ -231,7 +231,7 @@ void execute()
 
 			rmmovl(src, dest, address);
 
-		} else if( (op-code & 0xff) == 0x20) {
+		} else if( (op_code & 0xff) == 0x20) {
 	
 			/* rrmovl instruction */
 			src = (memory[pc + 1] & 0xf0) >> 4;
@@ -243,7 +243,7 @@ void execute()
 				break;
 			}
 
-			rrmovl(src, dest, address);
+			rrmovl(src, dest);
 
 
 		} else if( (op_code & 0xff) == 0x50) {
@@ -404,9 +404,7 @@ void irmovl(int val, int regA)
 {
 	steps++;
 	reg[regA] = val;
-	printf("irmovl %d into reg[%x]\n", val, regA);
 	pc += 6;
-	printf("Reg = %x\n", reg[regA]);
 }
 
 /*
@@ -437,7 +435,7 @@ void set_flags(int function, unsigned int val1,
 	conditional flags of the emulator 
 	----------------------------------
 	0 - add
-	1 - subtracta
+	1 - subtract
 	2 - and
 	3 - xor
 	*/
@@ -462,18 +460,18 @@ void set_flags(int function, unsigned int val1,
 
 		if(function == 0) {
 
-			if( (val1 & 0x80000000 == 0x80000000)
-				&& (val2 & 0x80000000 == 0x80000000)
-				&& ( (val1 + val2) & 0x80000000
+			if( ((val1 & 0x80000000) == 0x80000000)
+				&& ((val2 & 0x80000000) == 0x80000000)
+				&& ( ((val1 + val2) & 0x80000000)
 				 != 0x80000000)) {
 				
 				flags[0] = 0;
 				flags[1] = 0;
 				flags[2] = 1;
 
-			} else if( (val1 & 0x80000000 != 0x80000000)
-				&& (val2 & 0x80000000 != 0x80000000)
-				&& ( (val1 + val2) & 0x80000000
+			} else if( ((val1 & 0x80000000) != 0x80000000)
+				&& ((val2 & 0x80000000) != 0x80000000)
+				&& ( ((val1 + val2) & 0x80000000)
 				 == 0x80000000)) {
 
 				flags[0] = 0;
@@ -483,18 +481,18 @@ void set_flags(int function, unsigned int val1,
 	
 		} else if(function == 1) {
 
-			if( (val1 & 0x80000000 == 0x80000000)
-				&& (val2 & 0x80000000 == 0x80000000)
-				&& ( (val1 - val2) & 0x80000000
+			if( ((val1 & 0x80000000) == 0x80000000)
+				&& ((val2 & 0x80000000) == 0x80000000)
+				&& ( ((val1 - val2) & 0x80000000)
 				 != 0x80000000)) {
 				
 				flags[0] = 0;
 				flags[1] = 0;
 				flags[2] = 1;
 
-			} else if( (val1 & 0x80000000 != 0x80000000)
-				&& (val2 & 0x80000000 != 0x80000000)
-				&& ( (val1 - val2) & 0x80000000
+			} else if( ((val1 & 0x80000000) != 0x80000000)
+				&& ((val2 & 0x80000000) != 0x80000000)
+				&& ( ((val1 - val2) & 0x80000000)
 				 == 0x80000000)) {
 
 				flags[0] = 0;
@@ -504,18 +502,18 @@ void set_flags(int function, unsigned int val1,
 
 		} else if(function == 2) {
 	
-			if( (val1 & 0x80000000 == 0x80000000)
-				&& (val2 & 0x80000000 == 0x80000000)
-				&& ( (val1 & val2) & 0x80000000
+			if( ((val1 & 0x80000000) == 0x80000000)
+				&& ((val2 & 0x80000000) == 0x80000000)
+				&& ( ((val1 & val2) & 0x80000000)
 				 != 0x80000000)) {
 				
 				flags[0] = 0;
 				flags[1] = 0;
 				flags[2] = 1;
 
-			} else if( (val1 & 0x80000000 != 0x80000000)
-				&& (val2 & 0x80000000 != 0x80000000)
-				&& ( (val1 & val2) & 0x80000000
+			} else if( ((val1 & 0x80000000) != 0x80000000)
+				&& ((val2 & 0x80000000) != 0x80000000)
+				&& ( ((val1 & val2) & 0x80000000)
 				 == 0x80000000)) {
 
 				flags[0] = 0;
@@ -524,18 +522,18 @@ void set_flags(int function, unsigned int val1,
 			}
 		} else if(function == 3) {
 		
-			if( (val1 & 0x80000000 == 0x80000000)
-				&& (val2 & 0x80000000 == 0x80000000)
-				&& ( (val1 ^ val2) & 0x80000000
+			if( ((val1 & 0x80000000) == 0x80000000)
+				&& ((val2 & 0x80000000) == 0x80000000)
+				&& ( ((val1 ^ val2) & 0x80000000)
 				 != 0x80000000)) {
 				
 				flags[0] = 0;
 				flags[1] = 0;
 				flags[2] = 1;
 
-			} else if( (val1 & 0x80000000 != 0x80000000)
-				&& (val2 & 0x80000000 != 0x80000000)
-				&& ( (val1 ^ val2) & 0x80000000
+			} else if( ((val1 & 0x80000000) != 0x80000000)
+				&& ((val2 & 0x80000000) != 0x80000000)
+				&& ( ((val1 ^ val2) & 0x80000000)
 				 == 0x80000000)) {
 
 				flags[0] = 0;
@@ -550,7 +548,25 @@ void set_flags(int function, unsigned int val1,
 */
 void opl(int function, int regA, int regB)
 {
+	unsigned int result;
 	steps++;
+
+	if(function == 0) {
+
+		result = memory[reg[regA]] + memory[reg[regB]];
+	} else if(function == 1) {
+	
+		result = memory[reg[regA]] - memory[reg[regB]];
+	} else if(function == 2) {
+
+		result = memory[reg[regA]] & memory[reg[regB]];
+	} else if(function ==3) {
+
+		result = memory[reg[regA]] ^ memory[reg[regB]];
+	}
+
+	set_flags(function, memory[reg[regA]], memory[reg[regB]], result);
+	pc += 2;
 }
 
 /*
@@ -593,7 +609,7 @@ void pushl(int regA)
 	steps++;
 
 	if( reg[4] - 4 <= stack_limit) {
-		Printf("Errror: Stack Overflow dectected.\n");
+		printf("Error: Stack Overflow detected.\n");
 		programStatus = HLT;
 		return;
 	}
@@ -615,7 +631,7 @@ void popl(int regA)
 }
 
 /*
- * Prints out a formated table displaying various information about the
+ * Prints out a formatted table displaying various information about the
  * previous run of the emulator.
 */
 void print_output()
