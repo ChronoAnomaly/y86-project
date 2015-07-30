@@ -24,14 +24,15 @@ int valid_address(unsigned int addr);
 void print_output();
 void rrmovl(int regA, int regB);
 void irmovl(int val, int regA);
-void mrmovl(int regA, int regB);
+void rmmovl(int regA, int regB, unsigned int dest);
+void mrmovl(int regA, int regB, unsigned int dest);
 void opl(int function, int regA, int regB);
 void jump(int function, unsigned int dest);
 void cmov(int function, int regA, int regB);
 void call(unsigned int dest);
 void ret();
-void push(int regA);
-void pop(int regA);
+void pushl(int regA);
+void popl(int regA);
 
 /*######################################
  * Global variable space
@@ -189,25 +190,106 @@ void execute()
 			/* nop instruction, do nothing */
 		} else if( (op_code & 0xff) == 0x30) {
 			
+			/* irmovl instruction */
 			int value = memory[pc + 2] |
 				memory[pc + 3] << 8 |
 				memory[pc + 4] << 16 |
 				memory[pc + 5] << 24;
+			
 			dest = memory[pc + 1] & 0x0f;
+
+			if( (dest == 4) || (dest == 5)) {
+				programStatus = INS;
+				break;
+			}
+
 			irmovl(value, dest);
 
 		} else if( (op_code & 0xff) == 0x40) {
+		
+			/* rmmovl instruction */
+			address = memory[pc + 2] |
+				memory[pc + 3] << 8 |
+				memory[pc + 4] << 16 |
+				memory[pc + 5] << 24;
+			
+			if(!valid_address(address)) {
+				programStatus = ADR;
+				break;
+			}
+
+			src = (memory[pc + 1] & 0xf0) >> 4;
+			dest = memory[pc + 1] & 0x0f;
+
+			if( (dest == 4) || (dest == 5) || (src == 4) ||
+			(src == 5)) {
+				programStatus = INS;
+				break;
+			}
+
+			rmmovl(src, dest, address);
+
+		} else if( (op-code & 0xff) == 0x20) {
+	
+			/* rrmovl instruction */
+			src = (memory[pc + 1] & 0xf0) >> 4;
+			dest = memory[pc + 1] & 0x0f;
+
+			if( (dest == 4) || (dest == 5) || (src == 4) ||
+			(src == 5)) {
+				programStatus = INS;
+				break;
+			}
+
+			rrmovl(src, dest, address);
+
 
 		} else if( (op_code & 0xff) == 0x50) {
 
+			/* mrmovl instruction */
+			address = memory[pc + 2] |
+				memory[pc + 3] << 8 |
+				memory[pc + 4] << 16 |
+				memory[pc + 5] << 24;
+			
+			if(!valid_address(address)) {
+				programStatus = ADR;
+				break;
+			}
+
+			src = (memory[pc + 1] & 0xf0) >> 4;
+			dest = memory[pc + 1] & 0x0f;
+
+			if( (dest == 4) || (dest == 5) || (src == 4) ||
+			(src == 5)) {
+				programStatus = INS;
+				break;
+			}
+
+			mrmovl(src, dest, address);
+
 		} else if( (op_code & 0xff) == 0x60) {
 
+			/* OPL instruction */
 		} else if( (op_code & 0xff) == 0x70) {
-		} else if( (op_code & 0xff) == 0x20) {
+
+			/* jump instruction */
+		} else if( ((op_code & 0xff) >= 0x20)
+			 && ((op_code & 0xff) <= 0x26)) {
+		
+			/* conditional move instruction */
 		} else if( (op_code & 0xff) == 0x80) {
+
+			/* call instruction */
 		} else if( (op_code & 0xff) == 0x90) {
+
+			/* ret instruction */
 		} else if( (op_code & 0xff) == 0xa0) {
+
+			/* pushl instruction */
 		} else if( (op_code & 0xff) == 0xb0) {
+		
+			/* popl instruction */
 		} else {
 			
 			/* invalid instruction encountered */
@@ -245,31 +327,58 @@ void irmovl(int val, int regA)
 /*
  * Memory --> Register operation
 */
-void mrmovl(int regA, int regB)
+void mrmovl(int regA, int regB, unsigned int dest)
 {
 	steps++;
+	reg[regB] = memory[dest + reg[regA]];
+	pc += 6;
 }
 
+/*
+ * Register --> Memory operation
+*/
+void rmmovl(int regA, int regB, unsigned int dest)
+{
+	steps++;
+	memory[dest + reg[regB]] = reg[regA];
+	pc += 6;
+}
+
+/*
+ * Arithmetic and Logical operations
+*/
 void opl(int function, int regA, int regB)
 {
 	steps++;
 }
 
+/*
+ * Jump operation
+*/
 void jump(int function, unsigned int dest)
 {
 	steps++;
 }
 
+/*
+ * Conditional move operations
+*/
 void cmov(int function, int regA, int regB)
 {
 	steps++;
 }
 
+/*
+ * Call operation
+*/
 void call(unsigned int dest)
 {
 	steps++;
 }
 
+/*
+ * Return operation
+*/
 void ret()
 {
 	steps++;
@@ -278,7 +387,7 @@ void ret()
 /*
  * Pushes an item onto the stack
 */
-void push(int regA)
+void pushl(int regA)
 {
 	steps++;
 	reg[4] -= 4;
@@ -288,7 +397,7 @@ void push(int regA)
 /*
  * Pops an item from the stack
 */
-void pop(int regA)
+void popl(int regA)
 {
 	steps++;
 	reg[regA] = memory[reg[4]];
