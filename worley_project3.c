@@ -30,6 +30,8 @@ void opl(int function, int regA, int regB);
 void jump(int function, unsigned int dest);
 void cmov(int function, int regA, int regB);
 void call(unsigned int dest);
+void set_flags(int function, unsigned int val1,
+	 unsigned int val2, unsigned int result);
 void ret();
 void pushl(int regA);
 void popl(int regA);
@@ -344,6 +346,122 @@ void rmmovl(int regA, int regB, unsigned int dest)
 	pc += 6;
 }
 
+void set_flags(int function, unsigned int val1,
+	 unsigned int val2, unsigned int result)
+{
+
+	/* Function codes for arithmetic operations for setting the
+	conditional flags of the emulator 
+	----------------------------------
+	0 - add
+	1 - subtracta
+	2 - and
+	3 - xor
+	*/
+
+	flags[0] = 0;
+	flags[1] = 0;
+	flags[2] = 0;
+	
+	if(result == 0x0) {
+	
+		flags[0] = 1;
+		flags[1] = 0;
+		flags[2] = 0;
+
+	} else if(result & 0x80000000) {
+
+		flags[0] = 0;
+		flags[1] = 1;
+		flags[2] = 0;
+	
+	} else {
+
+		if(function == 0) {
+
+			if( (val1 & 0x80000000 == 0x80000000)
+				&& (val2 & 0x80000000 == 0x80000000)
+				&& ( (val1 + val2) & 0x80000000
+				 != 0x80000000)) {
+				
+				flags[0] = 0;
+				flags[1] = 0;
+				flags[2] = 1;
+
+			} else if( (val1 & 0x80000000 != 0x80000000)
+				&& (val2 & 0x80000000 != 0x80000000)
+				&& ( (val1 + val2) & 0x80000000
+				 == 0x80000000)) {
+
+				flags[0] = 0;
+				flags[1] = 0;
+				flags[2] = 1;
+			}
+	
+		} else if(function == 1) {
+
+			if( (val1 & 0x80000000 == 0x80000000)
+				&& (val2 & 0x80000000 == 0x80000000)
+				&& ( (val1 - val2) & 0x80000000
+				 != 0x80000000)) {
+				
+				flags[0] = 0;
+				flags[1] = 0;
+				flags[2] = 1;
+
+			} else if( (val1 & 0x80000000 != 0x80000000)
+				&& (val2 & 0x80000000 != 0x80000000)
+				&& ( (val1 - val2) & 0x80000000
+				 == 0x80000000)) {
+
+				flags[0] = 0;
+				flags[1] = 0;
+				flags[2] = 1;
+			}
+
+		} else if(function == 2) {
+	
+			if( (val1 & 0x80000000 == 0x80000000)
+				&& (val2 & 0x80000000 == 0x80000000)
+				&& ( (val1 & val2) & 0x80000000
+				 != 0x80000000)) {
+				
+				flags[0] = 0;
+				flags[1] = 0;
+				flags[2] = 1;
+
+			} else if( (val1 & 0x80000000 != 0x80000000)
+				&& (val2 & 0x80000000 != 0x80000000)
+				&& ( (val1 & val2) & 0x80000000
+				 == 0x80000000)) {
+
+				flags[0] = 0;
+				flags[1] = 0;
+				flags[2] = 1;
+			}
+		} else if(function == 3) {
+		
+			if( (val1 & 0x80000000 == 0x80000000)
+				&& (val2 & 0x80000000 == 0x80000000)
+				&& ( (val1 ^ val2) & 0x80000000
+				 != 0x80000000)) {
+				
+				flags[0] = 0;
+				flags[1] = 0;
+				flags[2] = 1;
+
+			} else if( (val1 & 0x80000000 != 0x80000000)
+				&& (val2 & 0x80000000 != 0x80000000)
+				&& ( (val1 ^ val2) & 0x80000000
+				 == 0x80000000)) {
+
+				flags[0] = 0;
+				flags[1] = 0;
+				flags[2] = 1;
+			}
+		}
+	}
+}
 /*
  * Arithmetic and Logical operations
 */
@@ -399,6 +517,7 @@ void pushl(int regA)
 
 	reg[4] -= 4;
 	memory[reg[4]] = reg[regA];
+	pc += 2;
 }
 
 /*
@@ -409,6 +528,7 @@ void popl(int regA)
 	steps++;
 	reg[regA] = memory[reg[4]];
 	reg[4] += 4;
+	pc += 2;
 }
 
 /*
