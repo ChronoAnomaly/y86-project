@@ -165,7 +165,7 @@ void execute()
 {
 
 	unsigned int op_code, address;
-	int src, dest;
+	int src, dest, function;
 
 	/* set the registers to 0x0 to begin the emulator */
 	reg[0] = reg[1] = reg[2] = reg[3] = reg[6] = reg[7] = 0x0;
@@ -273,25 +273,108 @@ void execute()
 		} else if( (op_code & 0xff) == 0x60) {
 
 			/* OPL instruction */
+			function = memory[pc] & 0x0f;
+			
+			if(function < 0 || function > 3) {
+				programStatus = INS;
+				break;
+			}
+
+			src = (memory[pc + 1] & 0xf0) >> 4;
+			dest = memory[pc + 1] & 0x0f;
+
+			if( (dest == 4) || (dest == 5) || (src == 4) ||
+			(src == 5)) {
+				programStatus = INS;
+				break;
+			}
+
+			opl(function, src, dest);
+
 		} else if( (op_code & 0xff) == 0x70) {
 
 			/* jump instruction */
+			address = memory[pc + 2] |
+				memory[pc + 3] << 8 |
+				memory[pc + 4] << 16 |
+				memory[pc + 5] << 24;
+			
+			if(!valid_address(address)) {
+				programStatus = ADR;
+				break;
+			}
+
+			function = memory[pc] & 0x0f;
+	
+			if(function < 0 || function > 6) {
+				programStatus = INS;
+				break;
+			}
+
+			jump(function, address);
+
 		} else if( ((op_code & 0xff) >= 0x20)
 			 && ((op_code & 0xff) <= 0x26)) {
 		
 			/* conditional move instruction */
+			function = memory[pc] & 0x0f;
+	
+			if(function < 1 || function > 6) {
+				programStatus = INS;
+				break;
+			}
+			
+			src = (memory[pc + 1] & 0xf0) >> 4;
+			dest = memory[pc + 1] & 0x0f;
+
+			if( (dest == 4) || (dest == 5) || (src == 4) ||
+			(src == 5)) {
+				programStatus = INS;
+				break;
+			}
+
+			cmov(function, src, dest);
+
 		} else if( (op_code & 0xff) == 0x80) {
 
 			/* call instruction */
+			address = memory[pc + 2] |
+				memory[pc + 3] << 8 |
+				memory[pc + 4] << 16 |
+				memory[pc + 5] << 24;
+			
+			if(!valid_address(address)) {
+				programStatus = ADR;
+				break;
+			}
+
+			call(address);
+
 		} else if( (op_code & 0xff) == 0x90) {
 
 			/* ret instruction */
+			ret();
+
 		} else if( (op_code & 0xff) == 0xa0) {
 
 			/* pushl instruction */
+			dest = (memory[pc + 1] & 0xf0) >> 4;
+
+			if( (dest == 4) || (dest == 5)) {
+				programStatus = INS;
+				break;
+			}
+
 		} else if( (op_code & 0xff) == 0xb0) {
 		
 			/* popl instruction */
+			dest = (memory[pc + 1] & 0xf0) >> 4;
+
+			if( (dest == 4) || (dest == 5)) {
+				programStatus = INS;
+				break;
+			}
+
 		} else {
 			
 			/* invalid instruction encountered */
