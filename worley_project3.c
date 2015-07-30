@@ -112,18 +112,12 @@ int main(int argc, char** argv)
 			
 			if(isxdigit(ch)) {
 			
-			instruct += ascii_to_hex(ch);
-			memory[program_size++] = instruct;
-		}
+				instruct += ascii_to_hex(ch);
+				memory[program_size++] = instruct;
+			}
 		}
 	}
 
-	printf("test 0x%02x\n", memory[0]);
-	printf("test 0x%02x\n", memory[1]);
-	printf("test 0x%02x\n", memory[2]);
-	printf("test 0x%02x\n", memory[3]);
-	printf("test 0x%02x\n", memory[4]);
-	printf("test 0x%02x\n", memory[5]);
 	stack_limit = program_size;
 
 	execute();
@@ -168,6 +162,7 @@ void execute()
 {
 
 	unsigned int op_code, address;
+	int src, dest;
 
 	/* set the registers to 0x0 to begin the emulator */
 	reg[0] = reg[1] = reg[2] = reg[3] = reg[6] = reg[7] = 0x0;
@@ -185,12 +180,21 @@ void execute()
 		printf("Testing op code 0x%02x\n", op_code);
 
 		/* determine OP Code */
-		if( (op_code & 0xff) == 0x10) {
+		if( (op_code & 0xff) == 0x00) {
+			
 			/* halt instrution */
-			programStatus == HLT;
-		} else if( (op_code & 0xff) == 0x00) {
+			programStatus = HLT;
+
+		} else if( (op_code & 0xff) == 0x10) {
 			/* nop instruction, do nothing */
 		} else if( (op_code & 0xff) == 0x30) {
+			
+			int value = memory[pc + 2] |
+				memory[pc + 3] << 8 |
+				memory[pc + 4] << 16 |
+				memory[pc + 5] << 24;
+			dest = memory[pc + 1] & 0x0f;
+			irmovl(value, dest);
 
 		} else if( (op_code & 0xff) == 0x40) {
 
@@ -205,8 +209,9 @@ void execute()
 		} else if( (op_code & 0xff) == 0xa0) {
 		} else if( (op_code & 0xff) == 0xb0) {
 		} else {
+			
 			/* invalid instruction encountered */
-			programStatus == INS;
+			programStatus = INS;
 		}
 
 
@@ -215,56 +220,85 @@ void execute()
 	}
 }
 
+/*
+ * Register --> Register operation
+*/
 void rrmovl(int regA, int regB)
 {
+	steps++;
+	reg[regB] = reg[regA];
+	pc += 2;
 }
 
+/*
+ * Immediate --> Register operation
+*/
 void irmovl(int val, int regA)
 {
-
+	steps++;
 	reg[regA] = val;
 	printf("irmovl %d into reg[%x]\n", val, regA);
 	pc += 6;
 	printf("Reg = %x\n", reg[regA]);
 }
 
+/*
+ * Memory --> Register operation
+*/
 void mrmovl(int regA, int regB)
 {
+	steps++;
 }
 
 void opl(int function, int regA, int regB)
 {
+	steps++;
 }
 
 void jump(int function, unsigned int dest)
 {
+	steps++;
 }
 
 void cmov(int function, int regA, int regB)
 {
+	steps++;
 }
 
 void call(unsigned int dest)
 {
+	steps++;
 }
 
 void ret()
 {
+	steps++;
 }
 
+/*
+ * Pushes an item onto the stack
+*/
 void push(int regA)
 {
-
+	steps++;
 	reg[4] -= 4;
 	memory[reg[4]] = reg[regA];
 }
 
+/*
+ * Pops an item from the stack
+*/
 void pop(int regA)
 {
-	
+	steps++;
 	reg[regA] = memory[reg[4]];
 	reg[4] += 4;
 }
+
+/*
+ * Prints out a formated table displaying various information about the
+ * previous run of the emulator.
+*/
 void print_output()
 {
 
