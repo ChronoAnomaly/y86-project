@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 	FILE* fp;
 	char ch;
 	unsigned int program_size = 0;
-	int instruct, i;
+	int instruct;
 
 	/* Allocate the memory space for the y86 emulator */
 	memory = (unsigned char*)malloc(sizeof(unsigned char) * MEM_SIZE);
@@ -107,21 +107,21 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	instruct = i = 0;
+	instruct = 0;
 
 	while( (ch = fgetc(fp)) != EOF) {
 		
 		if(isxdigit(ch)) {
 			
 			instruct = ascii_to_hex(ch) << 4;
-		}
-		
-		if( (ch = fgetc(fp)) != EOF) {
+	
+			if( (ch = fgetc(fp)) != EOF) {
 			
-			if(isxdigit(ch)) {
+				if(isxdigit(ch)) {
 			
-				instruct += ascii_to_hex(ch);
-				memory[program_size++] = instruct;
+					instruct += ascii_to_hex(ch);
+					memory[program_size++] = instruct;
+				}
 			}
 		}
 	}
@@ -184,6 +184,7 @@ void execute()
 
 		steps++;
 		op_code = memory[pc];
+printf("OP Code: %x\n", op_code);
 		/* determine OP Code */
 		if( (op_code & 0xff) == 0x00) {
 			
@@ -404,7 +405,7 @@ void irmovl(int val, int regA)
 {
 	steps++;
 	reg[regA] = val;
-	pc += 6;
+	pc += 5;
 }
 
 /*
@@ -414,7 +415,7 @@ void mrmovl(int regA, int regB, unsigned int dest)
 {
 	steps++;
 	reg[regB] = memory[dest + reg[regA]];
-	pc += 6;
+	pc += 5;
 }
 
 /*
@@ -424,7 +425,7 @@ void rmmovl(int regA, int regB, unsigned int dest)
 {
 	steps++;
 	memory[dest + reg[regB]] = reg[regA];
-	pc += 6;
+	pc += 5;
 }
 
 void set_flags(int function, unsigned int val1,
