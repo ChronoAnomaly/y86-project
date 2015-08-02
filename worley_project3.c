@@ -186,7 +186,7 @@ printf("Flags are: %d %d %d\n", flags[0], flags[1], flags[2]);
 		} else if( (op_code & 0xff) == 0x10) {
 			/* nop instruction, do nothing */
 		} else if( (op_code & 0xff) == 0x30) {
-
+printf("Instruction is %x%x%x%x%x%x\n",memory[pc],memory[pc+1],memory[pc+2],memory[pc+3],memory[pc+4],memory[pc+5]);
 			/* irmovl instruction */
 			value = memory[pc + 2] |
 				memory[pc + 3] << 8 |
@@ -551,17 +551,17 @@ void opl(int function, int regA, int regB)
 		result = reg[regA] + reg[regB];
 	} else if(function == 1) {
 	
-		result = memory[reg[regA]] - memory[reg[regB]];
+		result = reg[regA] - reg[regB];
 	} else if(function == 2) {
 
-		result = memory[reg[regA]] & memory[reg[regB]];
+		result = reg[regA] & reg[regB];
 	} else if(function ==3) {
 
-		result = memory[reg[regA]] ^ memory[reg[regB]];
+		result = reg[regA] ^ reg[regB];
 	}
-printf("values are %x and %x\n", memory[reg[regA]], memory[reg[regB]]);
+printf("values are %x and %x\n", reg[regA], reg[regB]);
 printf("result: %x\n", result);
-	set_flags(function, memory[reg[regA]], memory[reg[regB]], result);
+	set_flags(function, reg[regA], reg[regB], result);
 	pc += 2;
 }
 
