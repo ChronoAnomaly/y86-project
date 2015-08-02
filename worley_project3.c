@@ -5,10 +5,6 @@
 */
 
 
-/* NOTE: For some reason the global program counter (pc) is not updating
- * correctly.  I have it adding the correct amount for the instructions,
- * but it is off when trying to pull the next op code somehow.
-*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -88,10 +84,6 @@ int main(int argc, char** argv)
 	/* Allocate the memory space for the y86 emulator */
 	memory = (unsigned char*)malloc(sizeof(unsigned char) * MEM_SIZE);
 
-	if(memory != NULL) {
-		printf("Valid memory pointer.\n");
-	}
-
 	if(argc < 2) {
 		printf("Not enough arguments for the program to run correctly\n.");
 		return EXIT_FAILURE;
@@ -169,22 +161,22 @@ int valid_address(unsigned int addr)
 void execute()
 {
 
-	unsigned int op_code, address;
-	int src, dest, function, value;
+	unsigned int op_code, address, value;
+	int src, dest, function;
 
 	/* set the registers to 0x0 to begin the emulator */
 	reg[0] = reg[1] = reg[2] = reg[3] = reg[6] = reg[7] = 0x0;
 	/* set the stack registers to the max location in memory */
 	reg[3] = reg[4] = 0xFFFFFFFF;
+	flags[0] =flags[1] = flags[2] = 0;
 	pc = 0x0;
 	steps = 0;
 	programStatus = AOK;
 
 	while(programStatus == AOK) {
-
+printf("Flags are: %d %d %d\n", flags[0], flags[1], flags[2]);
 		steps++;
 		op_code = memory[pc];
-printf("OP Code: %x\n", op_code);
 		/* determine OP Code */
 		if( (op_code & 0xff) == 0x00) {
 			
@@ -194,12 +186,13 @@ printf("OP Code: %x\n", op_code);
 		} else if( (op_code & 0xff) == 0x10) {
 			/* nop instruction, do nothing */
 		} else if( (op_code & 0xff) == 0x30) {
+
 			/* irmovl instruction */
 			value = memory[pc + 2] |
 				memory[pc + 3] << 8 |
 				memory[pc + 4] << 16 |
 				memory[pc + 5] << 24;
-			
+printf("Value of converted value is %x\n", value);
 			dest = memory[pc + 1] & 0x0f;
 			if( (dest == 4) || (dest == 5)) {
 				programStatus = INS;
@@ -405,6 +398,7 @@ void irmovl(int val, int regA)
 {
 	steps++;
 	reg[regA] = val;
+printf("irmovl moveing value %x into reg[%d]\n reg[%d] now equals %08x\n", val, regA, regA, reg[regA]);
 	pc += 5;
 }
 
@@ -554,7 +548,7 @@ void opl(int function, int regA, int regB)
 
 	if(function == 0) {
 
-		result = memory[reg[regA]] + memory[reg[regB]];
+		result = reg[regA] + reg[regB];
 	} else if(function == 1) {
 	
 		result = memory[reg[regA]] - memory[reg[regB]];
@@ -565,7 +559,8 @@ void opl(int function, int regA, int regB)
 
 		result = memory[reg[regA]] ^ memory[reg[regB]];
 	}
-
+printf("values are %x and %x\n", memory[reg[regA]], memory[reg[regB]]);
+printf("result: %x\n", result);
 	set_flags(function, memory[reg[regA]], memory[reg[regB]], result);
 	pc += 2;
 }
@@ -660,6 +655,19 @@ void print_output()
 	/* print out changes made to the registers, if any */
 	for(i = 0; i < 8; i++) {
 
+		if(i == 4 || i == 5) {
+
+			if(reg[i] != 0xffffffff) {
+				
+				flag = 1;
+			}
+		} else {
+		
+			if(reg[i] != 0x00000000) {
+				
+				flag = 1;
+			}
+		}
 	}
 	
 	if(flag == 0) {
