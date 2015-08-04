@@ -4,7 +4,6 @@
  *
 */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -36,6 +35,8 @@ void set_flags(int function, unsigned int val1,
 void ret();
 void pushl(int regA);
 void popl(int regA);
+void reg_name(int index);
+unsigned int LE_convert();
 
 /*######################################
  * Global variable space
@@ -112,7 +113,6 @@ int main(int argc, char** argv)
 				if(isxdigit(ch)) {
 			
 					instruct += ascii_to_hex(ch);
-printf("Reading hex as %02x into address memory[%08x]\n", instruct, program_size);
 					memory[program_size++] = instruct;
 				}
 			}
@@ -158,6 +158,20 @@ int valid_address(unsigned int addr)
 	return 1;
 }
 
+/*
+ * Converts a 32 bit little endian value into an unsigned integer format.
+*/
+unsigned int LE_convert()
+{
+
+	unsigned int value;
+
+	value = memory[pc + 2] | memory[pc + 3] << 8 | memory[pc + 4] << 16
+			| memory[pc + 5] << 24;
+
+	return value;
+}
+
 
 void execute()
 {
@@ -168,14 +182,14 @@ void execute()
 	/* set the registers to 0x0 to begin the emulator */
 	reg[0] = reg[1] = reg[2] = reg[3] = reg[6] = reg[7] = 0x0;
 	/* set the stack registers to the max location in memory */
-	reg[3] = reg[4] = 0xFFFFFFFF;
+	reg[4] = reg[5] = 0xFFFFFFFF;
 	flags[0] =flags[1] = flags[2] = 0;
 	pc = 0x0;
 	steps = 0;
 	programStatus = AOK;
 
 	while(programStatus == AOK) {
-printf("Flags are: %d %d %d\n", flags[0], flags[1], flags[2]);
+		
 		steps++;
 		op_code = memory[pc];
 		/* determine OP Code */
@@ -188,15 +202,10 @@ printf("Flags are: %d %d %d\n", flags[0], flags[1], flags[2]);
 			/* nop instruction, do nothing */
 		} else if( (op_code & 0xff) == 0x30) {
 printf("Instruction is %x%x%x%x%x%x\n",memory[pc],memory[pc+1],memory[pc+2],memory[pc+3],memory[pc+4],memory[pc+5]);
-printf("mem[%08x]: %02x mem[%08x]: %02x mem[%08x]: %02x",pc,memory[pc],pc+1,memory[pc+1],pc+2,memory[pc+3]);
-printf(" mem[%08x]: %02x mem[%08x]: %02x mem[%08x]: %02x\n",pc+3,memory[pc+3],pc+4,memory[pc+4],pc+5,memory[pc+5]);
 			/* irmovl instruction */
-			value = memory[pc + 2] |
-				memory[pc + 3] << 8 |
-				memory[pc + 4] << 16 |
-				memory[pc + 5] << 24;
-printf("Value of converted value is %x\n", value);
+			value = LE_convert();
 			dest = memory[pc + 1] & 0x0f;
+			
 			if( (dest == 4) || (dest == 5)) {
 				programStatus = INS;
 				break;
@@ -207,10 +216,7 @@ printf("Value of converted value is %x\n", value);
 		} else if( (op_code & 0xff) == 0x40) {
 		
 			/* rmmovl instruction */
-			address = memory[pc + 2] |
-				memory[pc + 3] << 8 |
-				memory[pc + 4] << 16 |
-				memory[pc + 5] << 24;
+			address = LE_convert();
 			
 			if(!valid_address(address)) {
 				programStatus = ADR;
@@ -246,10 +252,7 @@ printf("Value of converted value is %x\n", value);
 		} else if( (op_code & 0xff) == 0x50) {
 
 			/* mrmovl instruction */
-			address = memory[pc + 2] |
-				memory[pc + 3] << 8 |
-				memory[pc + 4] << 16 |
-				memory[pc + 5] << 24;
+			address = LE_convert();
 			
 			if(!valid_address(address)) {
 				programStatus = ADR;
@@ -291,10 +294,7 @@ printf("Value of converted value is %x\n", value);
 		} else if( (op_code & 0xff) == 0x70) {
 
 			/* jump instruction */
-			address = memory[pc + 2] |
-				memory[pc + 3] << 8 |
-				memory[pc + 4] << 16 |
-				memory[pc + 5] << 24;
+			address = LE_convert();
 			
 			if(!valid_address(address)) {
 				programStatus = ADR;
@@ -335,10 +335,7 @@ printf("Value of converted value is %x\n", value);
 		} else if( (op_code & 0xff) == 0x80) {
 
 			/* call instruction */
-			address = memory[pc + 2] |
-				memory[pc + 3] << 8 |
-				memory[pc + 4] << 16 |
-				memory[pc + 5] << 24;
+			address = LE_convert();
 			
 			if(!valid_address(address)) {
 				programStatus = ADR;
@@ -377,10 +374,6 @@ printf("Value of converted value is %x\n", value);
 			/* invalid instruction encountered */
 			programStatus = INS;
 		}
-
-
-
-
 	}
 }
 
@@ -401,8 +394,8 @@ void irmovl(int val, int regA)
 {
 	steps++;
 	reg[regA] = val;
-printf("irmovl moveing value %x into reg[%d]\n reg[%d] now equals %08x\n", val, regA, regA, reg[regA]);
-	pc += 5;
+printf("irmovl moving value %x into reg[%d]\n reg[%d] now equals %08x\n", val, regA, regA, reg[regA]);
+	pc += 6;
 }
 
 /*
@@ -412,7 +405,7 @@ void mrmovl(int regA, int regB, unsigned int dest)
 {
 	steps++;
 	reg[regB] = memory[dest + reg[regA]];
-	pc += 5;
+	pc += 6;
 }
 
 /*
@@ -422,7 +415,7 @@ void rmmovl(int regA, int regB, unsigned int dest)
 {
 	steps++;
 	memory[dest + reg[regB]] = reg[regA];
-	pc += 5;
+	pc += 6;
 }
 
 void set_flags(int function, unsigned int val1,
@@ -662,12 +655,16 @@ void print_output()
 
 			if(reg[i] != 0xffffffff) {
 				
+				reg_name(i);
+				printf("0xffffffff \t 0x%08x\n", reg[i]);
 				flag = 1;
 			}
 		} else {
 		
 			if(reg[i] != 0x00000000) {
 				
+				reg_name(i);
+				printf("0x00000000 \t 0x%08x\n", reg[i]);
 				flag = 1;
 			}
 		}
@@ -677,4 +674,29 @@ void print_output()
 		printf("None\n");
 	}
 	
+}
+
+/*
+ * Prints out the name of the current register, used for printing the formatted table.
+*/
+void reg_name(int index)
+{
+
+	if(index == 0) {
+		printf("%%eax\t");
+	} else if(index == 1) {
+		printf("%%ecx\t");
+	} else if(index == 2) {
+		printf("%%edx\t");
+	} else if(index == 3) {
+		printf("%%ebx\t");
+	} else if(index == 4) {
+		printf("%%esp\t");
+	} else if(index == 5) {
+		printf("%%ebp\t");
+	} else if(index == 6) {
+		printf("%%esi\t");
+	} else if(index == 7) {
+		printf("%%edi\t");
+	}
 }
