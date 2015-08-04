@@ -112,6 +112,7 @@ int main(int argc, char** argv)
 				if(isxdigit(ch)) {
 			
 					instruct += ascii_to_hex(ch);
+printf("Reading hex as %02x into address memory[%08x]\n", instruct, program_size);
 					memory[program_size++] = instruct;
 				}
 			}
@@ -187,6 +188,8 @@ printf("Flags are: %d %d %d\n", flags[0], flags[1], flags[2]);
 			/* nop instruction, do nothing */
 		} else if( (op_code & 0xff) == 0x30) {
 printf("Instruction is %x%x%x%x%x%x\n",memory[pc],memory[pc+1],memory[pc+2],memory[pc+3],memory[pc+4],memory[pc+5]);
+printf("mem[%08x]: %02x mem[%08x]: %02x mem[%08x]: %02x",pc,memory[pc],pc+1,memory[pc+1],pc+2,memory[pc+3]);
+printf(" mem[%08x]: %02x mem[%08x]: %02x mem[%08x]: %02x\n",pc+3,memory[pc+3],pc+4,memory[pc+4],pc+5,memory[pc+5]);
 			/* irmovl instruction */
 			value = memory[pc + 2] |
 				memory[pc + 3] << 8 |
